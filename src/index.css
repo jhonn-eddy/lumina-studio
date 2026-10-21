@@ -1,62 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600&family=Libre+Caslon+Text:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&display=swap');
 
 :root {
   font-family: 'Hanken Grotesk', Arial, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
   --font-sans: 'Hanken Grotesk', Arial, sans-serif;
   --font-serif: 'Libre Caslon Text', Georgia, serif;
-  --page-gutter: clamp(24px, 5.56vw, 80px);
-  --primary: #000;
-  --on-primary: #fff;
-  --secondary: #775a19;
-  --surface: #fbf9f9;
-  --surface-variant: #e3e2e2;
-  --surface-container-low: #f5f3f3;
-  --surface-container-high: #e9e8e7;
-  --surface-container-lowest: #fff;
-  --on-surface-variant: #444748;
-  --outline-variant: #c4c7c7;
-
-  color: #1b1c1c;
-  background: var(--surface);
+  --page-gutter: clamp(23px, 6vw, 88px);
+  --ink: #252621;
+  --paper: #fbfaf7;
+  --muted: #77766f;
+  --gold: #9a7c47;
+  --line: #e6e3dc;
+  color: var(--ink);
+  background: var(--paper);
   font-weight: 400;
-  scroll-behavior: smooth;
 }
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  min-width: 320px;
-  margin: 0;
-}
-
-body.has-open-dialog {
-  overflow: hidden;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid var(--secondary);
-  outline-offset: 3px;
-}
-
-::selection {
-  background: #fed488;
-  color: #1b1c1c;
-}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { min-width: 320px; margin: 0; }
+button, input, select, textarea { font: inherit; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+::selection { background: #e6d4aa; color: var(--ink); }

@@ -1,45 +1,23 @@
+const photo = (id) => `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=2400`
+
 export const galleryItems = [
-  {
-    title: 'Bodas',
-    image: 'https://images.pexels.com/photos/15552025/pexels-photo-15552025.jpeg',
-    layout: 'gallery-item--wide',
-    imageSize: 'gallery-image--tall',
-  },
-  {
-    title: 'Fauna',
-    image: 'https://images.pexels.com/photos/37741206/pexels-photo-37741206.jpeg',
-    layout: 'gallery-item--portrait',
-    imageSize: 'gallery-image--portrait',
-  },
-  {
-    title: 'Montañas',
-    image: 'https://images.pexels.com/photos/11795858/pexels-photo-11795858.jpeg',
-    layout: 'gallery-item--half',
-    imageSize: 'gallery-image--medium',
-  },
-  {
-    title: 'Ríos',
-    image: 'https://images.pexels.com/photos/38464281/pexels-photo-38464281.jpeg',
-    layout: 'gallery-item--half',
-    imageSize: 'gallery-image--medium',
-  },
+  { title: 'Un día para siempre', alt: 'Pareja de novios en una celebración al aire libre', image: photo(15552025), category: 'Bodas' },
+  { title: 'Silencio salvaje', alt: 'Fauna en su entorno natural', image: photo(37741206), category: 'Naturaleza' },
+  { title: 'La forma del paisaje', alt: 'Montañas bajo la luz del día', image: photo(11795858), category: 'Paisajes' },
+  { title: 'Donde fluye la calma', alt: 'Río rodeado de un paisaje natural', image: photo(38464281), category: 'Paisajes' },
 ]
 
 export const packages = [
   {
-    name: 'Esencial',
-    price: '$150',
-    features: ['1 hora de sesión', '15 fotos editadas', 'Cambios de look (No incluido)'],
+    slug: 'esencial', eyebrow: '01 · RETRATO', name: 'Esencial', price: 'Desde $150', description: 'Una sesión íntima y cuidada para retratos y momentos personales.',
+    features: ['1 hora de sesión', '15 fotografías editadas', 'Galería privada de entrega'],
   },
   {
-    name: 'Premium',
-    price: '$300',
-    features: ['2 horas de sesión', '30 fotos editadas', '2 cambios de look'],
-    featured: true,
+    slug: 'premium', eyebrow: '02 · EXPERIENCIA', name: 'Premium', price: 'Desde $300', description: 'Más tiempo y variedad para contar una historia completa.', featured: true,
+    features: ['2 horas de sesión', '30 fotografías editadas', 'Hasta 2 cambios de vestuario'],
   },
   {
-    name: 'Eventos',
-    price: '$600',
-    features: ['4 horas de cobertura', 'Todas las fotos editadas', 'Entrega rápida (48 hrs)'],
+    slug: 'eventos', eyebrow: '03 · COBERTURA', name: 'Eventos', price: 'Desde $600', description: 'Cobertura documental para celebraciones y encuentros especiales.',
+    features: ['Hasta 4 horas de cobertura', 'Selección completa editada', 'Entrega prioritaria en 48 horas'],
   },
 ]
