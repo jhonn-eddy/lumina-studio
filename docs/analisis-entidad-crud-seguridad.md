@@ -2,73 +2,88 @@
 
 ## Descripción breve del sistema
 
-Lumina Studio es una aplicación React de una sola página que presenta un estudio de fotografía. Permite recorrer una galería, consultar paquetes y completar una solicitud de reserva. El formulario muestra una confirmación simulada, pero no envía ni conserva la información introducida. No se identifican backend, base de datos, rutas, autenticación ni roles en el proyecto inspeccionado.
+Lumina Studio es un sitio React para presentar un estudio fotográfico, su galería y tres paquetes de servicio. La navegación se realiza con rutas en el fragmento de URL (`#`) y el contenido del catálogo está definido estáticamente en el cliente. Desde cada paquete se puede abrir un formulario para expresar interés en una sesión. El formulario es demostrativo: no hay backend ni base de datos y la consulta no se envía ni se guarda.
 
 ## Entidad principal
 
-La entidad principal se modela aquí como **Solicitud de reserva (simulada)**. Se elige porque el formulario de contacto invita al usuario a solicitar una fecha y reúne los datos asociados a esa intención (`src/components/Booking.jsx:29-61`). No existe una definición de modelo persistente: los campos se identifican por los controles del formulario y no como un objeto de dominio guardado.
+### Consulta de sesión
+
+La entidad principal se define para el análisis como **Consulta de sesión**. Es la unidad de negocio más relevante porque conecta el paquete que el visitante consulta con sus datos de contacto, fecha y descripción del proyecto (`src/pages/BookingPage.jsx:15-50`). Sin embargo, el código no crea un objeto de consulta ni un registro persistente; el modelo siguiente describe los campos que la interfaz solicita, no una entidad almacenada.
 
 | Campo | Tipo de dato | Descripción | Obligatorio | Sensible |
 |---|---|---|---|---|
-| nombre | Texto | Nombre de quien solicita la reserva. | Sí (`required`) | Dato personal identificable. |
-| email | Cadena con formato de correo | Medio de contacto; el control `type="email"` ofrece validación básica del navegador. | Sí (`required`) | Dato personal de contacto. |
-| teléfono | Texto (`tel`) | Número de contacto. | No especificado como obligatorio (sin `required`). | Dato personal de contacto. |
-| paquete | Texto; conjunto de opciones derivado de catálogo | Paquete de interés seleccionado; opciones Esencial, Premium o Eventos. | No (hay opción vacía). | No, por sí solo. |
-| fecha deseada | Fecha (`date`) | Fecha solicitada; el control establece como mínimo la fecha actual en el navegador. | Sí (`required`) | Puede revelar planes personales; sensibilidad contextual. |
-| mensaje / detalles del proyecto | Texto multilínea | Descripción libre de la solicitud. | Sí (`required`) | Puede contener información personal o confidencial; contenido no restringido. |
-| ID de reserva mostrado | Texto | Código `LUM-` más cuatro dígitos aleatorios; se genera al enviar el formulario y se presenta como simulación. | No aplica | No es credencial ni identificador persistente; colisiones posibles. |
+| paquete (`packageSlug`) | Cadena; uno de los slugs definidos en el catálogo | Se obtiene de la ruta `#/reservar/{slug}` y determina el paquete mostrado. No es un campo editable del formulario. | Requerido para identificar una página de paquete válida; no se valida como parte del envío. | No, por sí solo. |
+| nombre (`name`) | Texto | Nombre completo escrito por el visitante. | Sí (`required`); máximo 100 caracteres en el control. | Dato personal identificable. |
+| correo electrónico (`email`) | Cadena con formato de correo | Dirección para responder la consulta. | Sí (`required`, `type="email"`); máximo 254 caracteres en el control. | Dato personal de contacto. |
+| teléfono (`phone`) | Texto (`tel`) | Teléfono opcional de contacto. | No. Máximo 30 caracteres en el control. | Dato personal de contacto. |
+| fecha de interés (`date`) | Fecha (`date`) | Fecha deseada para la sesión. El control fija como mínimo la fecha local actual. | Sí (`required`). | Dato personal contextual; puede revelar planes. |
+| tipo de sesión (`type`) | Cadena; selección de opciones fijas | Tipo indicado por el visitante: boda, retrato, evento, proyecto editorial u otro. | No; la opción inicial es vacía. | No, por sí solo. |
+| mensaje (`message`) | Texto multilínea | Descripción libre del proyecto; el visitante puede incluir información personal no prevista. | Sí (`required`); máximo 1200 caracteres en el control. | Puede contener datos personales o confidenciales. |
+| consentimiento (`consent`) | Booleano inferido de casilla | Casilla requerida con la que el visitante autoriza el uso de sus datos para responder la consulta. No tiene `name` ni se guarda. | Sí para completar el envío del formulario (`required`). | Preferencia/dato relacionado con privacidad. |
 
-Los tipos y restricciones anteriores se infieren de los elementos HTML. No se especifican longitudes máximas, formato telefónico, política de retención, validación de negocio ni esquema de datos. El identificador no corresponde a un registro real (`src/components/Booking.jsx:5-12, 19-24`).
+Los límites HTML y tipos se basan en los controles, pero no son validación de servidor. `packageSlug` es una inferencia derivada de la ruta y de la búsqueda en el catálogo (`src/App.jsx:25-28, 54-64`, `src/pages/BookingPage.jsx:8`). El estado `demoMessage` solo controla la presentación del aviso tras el envío; no constituye un estado de consulta guardada (`src/pages/BookingPage.jsx:5, 36-37`). La casilla de consentimiento es `required`, pero carece de `name`; además, el manejador no lee los valores ni construye un payload (`src/pages/BookingPage.jsx:37-50`).
 
 ```mermaid
 classDiagram
-  class SolicitudReservaSimulada {
-    +string nombre
+  class ConsultaSesionInterfaz {
+    +string packageSlug
+    +string name
     +string email
-    +string telefono
-    +string paquete
-    +date fechaDeseada
-    +string mensaje
-    +string idReservaMostrado
+    +string phone
+    +date date
+    +string type
+    +string message
+    +boolean consent
   }
+  note for ConsultaSesionInterfaz "Representa campos del formulario; no se crea ni persiste como registro"
 ```
 
 ## Matriz CRUD y permisos
 
-No hay roles ni identidad de usuario implementados. Por tanto, la columna indica una **propuesta** para un futuro sistema con backend, no permisos existentes. La interfaz pública permite a cualquier visitante operar el formulario, pero eso no equivale a autorización. No hay controles de acceso efectivos que el código inspeccionado permita verificar.
+No se implementan roles, cuentas, autenticación ni autorización. Para hacer explícita la matriz se proponen, solo para un futuro backend, dos perfiles: **Visitante** (persona no autenticada que puede enviar una consulta) y **Personal autorizado** (cuenta autenticada del estudio con permisos operativos). No son roles existentes. La interfaz pública permite consultar el catálogo y rellenar el formulario, pero eso no demuestra ni sustituye autorización de servidor.
 
 | Entidad o dato | Crear | Leer | Actualizar | Eliminar |
 |---|---|---|---|---|
-| Solicitud de reserva y campos de contacto | Visitante, mediante formulario (simulado); propuesta: cliente no autenticado puede enviar una solicitud validada | Propuesta: propietario de la solicitud y personal autorizado; visitante solo lee su confirmación de envío | Propuesta: propietario autenticado y personal autorizado, con verificación en servidor | Propuesta: personal autorizado; propietario solo mediante flujo verificado y política de retención |
-| Paquetes (nombre, precio y características) | No disponible en interfaz; propuesta: administrador | Visitante, desde catálogo estático | No disponible en interfaz; propuesta: administrador | No disponible en interfaz; propuesta: administrador |
+| Consulta de sesión (nombre, correo, teléfono, fecha, tipo y mensaje) | Visitante público mediante formulario; actualmente solo simulación. Propuesta: aceptar solicitudes públicas con validación, límites antiabuso y consentimiento informado. | Actualmente no existe lectura de registros. Propuesta: personal autorizado; el titular solo mediante canal verificado si se habilita consulta. | Actualmente no existe actualización. Propuesta: personal autorizado; permitir al titular corregir datos tras verificar identidad. | Actualmente no existe eliminación. Propuesta: personal autorizado según retención; tramitar solicitudes del titular tras verificar identidad. |
+| Paquete asociado (`packageSlug`) | No se crea un registro. Propuesta: asignarlo desde el catálogo validado en servidor, no confiar en precio o slug arbitrario del cliente. | Visitantes leen la descripción pública del paquete en el catálogo estático. | Sin edición en interfaz; propuesta: administrador autorizado. | Sin eliminación en interfaz; propuesta: administrador autorizado, preservando integridad de consultas históricas. |
+| Consentimiento | La casilla se marca en el navegador; no se registra. Propuesta: guardar evidencia verificable del consentimiento junto a la consulta, su propósito y versión del aviso. | No hay registro consultable. Propuesta: personal autorizado y titular mediante solicitud verificada. | No implementado. Propuesta: no alterar retrospectivamente la evidencia; registrar cambios/revocaciones como eventos. | No implementado. Propuesta: aplicar política de retención y obligaciones de privacidad en servidor. |
+| Paquetes y galería | No disponible; catálogo y enlaces de fotos son estáticos. Propuesta: administrador autorizado si se añade gestión. | Público, desde `src/data/siteContent.js`. | No disponible en interfaz. Propuesta: administrador autorizado. | No disponible en interfaz. Propuesta: administrador autorizado. |
 
-**Estado de operaciones:** la interfaz recoge nombre, correo, teléfono, paquete, fecha y mensaje, pero `submitBooking` no lee los valores del formulario: solo evita el envío HTML y cambia estado para mostrar un código aleatorio (`src/components/Booking.jsx:9-12, 29-61`). No hay creación, lectura, actualización o eliminación de solicitudes como registros. El paquete seleccionado sí se refleja en estado React y se comparte entre precios y formulario (`src/App.jsx:10-16, 25-26`), pero es solo estado en memoria. Los paquetes y la galería son datos estáticos importados desde `src/data/siteContent.js:1-45`. No aparecen llamadas de red ni uso de almacenamiento persistente en el código de aplicación inspeccionado.
+**Operaciones actuales:** el navegador presenta los paquetes y las imágenes como contenido de solo lectura. El formulario aplica restricciones de interfaz (`required`, `type`, `maxLength`, fecha mínima y casilla obligatoria); su `onSubmit` llama `preventDefault()` y cambia `demoMessage`, sin leer valores, crear un objeto, transmitir una petición ni escribir almacenamiento (`src/pages/BookingPage.jsx:37-50`). La selección del paquete proviene de un slug cotejado con el catálogo (`src/App.jsx:54-64`, `src/data/siteContent.js:10-23`). La única persistencia del navegador encontrada es `localStorage` para recordar el tema visual (`src/App.jsx:30-37`); no guarda datos de consultas. No se encontraron llamadas `fetch`/Axios, `sessionStorage`, modelos persistentes, operaciones CRUD de consultas, roles o autenticación en el flujo activo.
+
+El componente `Legacy/components/Booking.jsx:1-24` conserva un flujo de reserva simulado antiguo que generaba un ID aleatorio, pero `src/App.jsx:1-7, 54-64` no lo importa ni lo renderiza. Por tanto, no forma parte del flujo activo y su ID no es un registro de reserva.
 
 ## Regla de seguridad indispensable
 
-**Regla:** cualquier solicitud que llegue a almacenarse o consultarse debe ser accesible únicamente a su titular y al personal con autorización explícita; toda autorización debe imponerse en el servidor, y el contenido libre del mensaje debe tratarse como entrada no confiable.
+**Regla:** la información personal de una consulta solo debe transmitirse y almacenarse con un propósito informado y acceso limitado al titular y al personal autorizado; las comprobaciones y permisos deben imponerse en el servidor, no depender del frontend.
 
-Es indispensable porque el formulario solicita datos de contacto y texto libre (`src/components/Booking.jsx:31-59`). Hoy no existe backend ni almacenamiento, por lo que no se demuestra una exposición de registros ni se puede comprobar control de acceso. Tampoco existe autorización efectiva: no hay autenticación o roles identificables; las comprobaciones `required`, `type="email"` y `min` son validaciones de interfaz y no controles de seguridad del servidor. En el escenario futuro de persistencia, una API que confiara en identificadores o permisos enviados por el cliente podría permitir lectura o modificación indebida.
+**Justificación y relación con el código.** El formulario solicita nombre, correo, teléfono, fecha y detalles libres del proyecto, además de una casilla que declara autorización de uso (`src/pages/BookingPage.jsx:39-48`). El mensaje libre puede contener datos que el estudio no necesita. El código no captura ni transmite esos valores: el manejador solo cancela el envío HTML y muestra un aviso que confirma que no se guardaron datos (`src/pages/BookingPage.jsx:36-37, 50`). Por ello, no se demuestra exposición de registros almacenados ni existe una operación de autorización de datos que pueda probarse.
 
-Al incorporar backend, autenticar las operaciones de consulta y cambio, comprobar en cada solicitud que el usuario sea titular o tenga un permiso administrativo, validar y limitar los datos en servidor, y devolver al cliente solo los campos necesarios. Para solicitudes públicas de creación, aplicar controles antiabuso y almacenar el mínimo de información requerido con una política de retención definida.
+**Estado actual:** no existe procesamiento de consultas en servidor que permita comprobar autorización de acceso. En el flujo visible, los valores no se guardan ni envían; por ello no se confirma exposición ni acceso indebido a registros. La casilla no genera evidencia de consentimiento: es obligatoria para la validación del navegador, pero no tiene `name`, no se lee ni se registra. Tampoco se enlaza a un aviso de privacidad. Las validaciones del navegador pueden omitirse y no son controles de seguridad de servidor.
+
+**Implementación recomendada:** si se conecta un backend, validar en servidor los campos, el paquete y sus reglas; minimizar datos y limitar longitud/tipo; registrar el consentimiento informado junto a la consulta; proteger cada lectura, modificación y eliminación con autorización por titular/rol en cada petición; definir retención y eliminación; y no recoger datos de pago en este formulario. No almacenar datos sensibles en almacenamiento del navegador como sustituto de controles del servidor.
 
 ## Duda técnica y respuesta
 
-**Pregunta:** ¿Puede una persona consultar o alterar las solicitudes de otros usuarios usando el identificador de reserva que muestra el formulario?
+**Pregunta:** ¿Puede el estudio demostrar que el visitante aceptó el uso de sus datos y limitar quién accede a la consulta si se añade persistencia al formulario actual?
 
-**Respuesta:** en la versión inspeccionada no hay solicitudes guardadas ni una operación de consulta o modificación, así que no se puede demostrar ese acceso indebido como vulnerabilidad actual. El código genera el identificador con `Math.random()` y un espacio de solo 10 000 sufijos (`src/components/Booking.jsx:9-12`); no hay unicidad ni asociación a un registro. Se anuncia como confirmación de simulación (`src/components/Booking.jsx:19-24`), por lo que no debe usarse como token de acceso. Si en una futura implementación se aceptara este valor como única prueba de autorización, sería un riesgo potencial: el espacio es enumerable y puede haber colisiones.
+**Respuesta:** no con la implementación actual. La casilla requerida solo participa en la validación del navegador, pero no tiene atributo `name`, no se lee y no se almacena (`src/pages/BookingPage.jsx:48-50`). El manejador tampoco recopila los valores (`src/pages/BookingPage.jsx:37`). No existe backend, cuenta autenticada, rol ni CRUD de consultas que pueda restringir el acceso. Así, no hay una vulnerabilidad confirmada de lectura de registros —no se crean—, pero sí un **riesgo potencial y una regla de privacidad incompleta** si luego se persisten consultas sin evidencia de consentimiento ni control de accesos.
 
-**Recomendación:** no autorizar acceso por un código visible al cliente. En backend, aplicar autorización por titular y rol en cada operación; si se necesita un enlace de seguimiento sin sesión, usar un token criptográficamente aleatorio de alta entropía, almacenarlo de forma segura, limitar su alcance y permitir revocación. Validar también fecha y paquete contra reglas del servidor.
+**Recomendación concreta:** enviar una estructura validada a un servicio backend mediante HTTPS; asociar el consentimiento con fecha, propósito y versión del aviso; aplicar autorización en el servidor en cada lectura/cambio y filtrar la respuesta a los campos necesarios. Mantener la solicitud sin campos de tarjeta y usar un proveedor de pagos separado si esa función se incorpora.
 
 ## Conclusión
 
-El proyecto implementa una experiencia visual y un formulario de reserva demostrativo, no un sistema CRUD de reservas. Los datos personales introducidos no se recogen en un objeto de estado ni se transmiten o persisten por el manejador actual; no se debe interpretar la confirmación como reserva real. Antes de producción, se requiere definir el modelo y ciclo de vida de la solicitud, minimizar y proteger los datos personales, e implementar autenticación/autorización y validación en un backend. El análisis se limita al código disponible en este workspace; no permite afirmar cómo se comportaría un servicio externo futuro.
+La aplicación implementa navegación, catálogo público y un formulario demostrativo, no un sistema CRUD de consultas. Los datos introducidos no se envían ni guardan, y no hay autenticación o roles; por ello, no corresponde afirmar que exista acceso indebido confirmado a registros. Antes de recibir solicitudes reales se debe definir el tratamiento de datos y el consentimiento, validar en servidor y limitar el acceso por titular y personal autorizado. La galería y los paquetes son contenido estático y público; el análisis se limita al código disponible en el workspace.
 
-## Referencias del proyecto
+## Referencias
 
-- `react-app/package.json:6-18` — scripts y dependencias; no incluye cliente de backend identificado.
-- `react-app/src/App.jsx:10-28` — composición de la página y estado de paquete en memoria.
-- `react-app/src/components/Booking.jsx:5-12, 29-61` — estado de confirmación simulada, campos y manejador del formulario.
-- `react-app/src/data/siteContent.js:28-45` — catálogo estático de paquetes.
-- `react-app/src/components/Pricing.jsx:1-24` — presentación y selección de paquetes.
+- `package.json:6-18` — scripts y dependencias React/Vite; no se identifica una dependencia de API de negocio.
+- `src/main.jsx:1-10` — montaje de React.
+- `src/App.jsx:25-64` — enrutamiento por hash, selección del paquete y composición de páginas activas.
+- `src/App.jsx:30-37` — preferencia de tema guardada en `localStorage`; no corresponde a datos de negocio.
+- `src/pages/BookingPage.jsx:4-55` — campos de consulta, restricciones de navegador, consentimiento y manejador simulado.
+- `src/data/siteContent.js:1-23` — fuentes estáticas de galería y atributos del catálogo de paquetes.
+- `src/pages/HomePage.jsx:50-68` — lectura pública y enlaces de consulta de los tres paquetes.
+- `src/pages/GalleryPage.jsx:20-39` — galería pública con datos estáticos e imágenes servidas desde Pexels.
+- `Legacy/components/Booking.jsx:1-24` — componente antiguo no importado por la aplicación activa; confirmación simulada.
 

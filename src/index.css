@@ -19,7 +19,18 @@
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body { min-width: 320px; margin: 0; }
+body { min-width: 320px; margin: 0; color: var(--ink); background: var(--paper); transition: color .25s ease, background-color .25s ease; }
+body[data-theme='dark'] {
+  --ink: #f1eee7;
+  --paper: #20211e;
+  --muted: #b0aea5;
+  --gold: #c6a66b;
+  --line: #41413b;
+  color: var(--ink);
+  background: var(--paper);
+  color-scheme: dark;
+}
+body[data-theme='light'] { color-scheme: light; }
 button, input, select, textarea { font: inherit; }
 a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 ::selection { background: #e6d4aa; color: var(--ink); }
