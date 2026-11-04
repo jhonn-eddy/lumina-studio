@@ -44,11 +44,14 @@ Copia `.env.example` a `.env.local` y rellena los valores públicos del proyecto
 ```dotenv
 VITE_SUPABASE_URL=https://TU_PROJECT_REF.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+VITE_API_URL=https://TU_API_DE_RESERVAS
 ```
 
 Obtén URL y clave publicable del **proyecto seleccionado**; no adivines, copies claves de otro proyecto ni pegues credenciales en el repositorio. Las variables `VITE_*` se compilan en el navegador y son públicas. Nunca incluyas una clave `sb_secret_...`, `service_role`, un token de acceso personal o credenciales de base de datos. `.env` y `.env.*` están ignorados por Git; `.env.example` queda incluido.
 
 La inicialización del SDK está centralizada en `src/lib/supabase.js`. Consume `supabase` de ese módulo solo después de que `isSupabaseConfigured` sea `true`. Esta preparación no incorpora autenticación de usuarios, CRUD, tablas, migraciones ni cambios remotos. Antes de exponer datos, diseñar las políticas RLS y revisar los permisos por recurso.
+
+El formulario de reservas usa `VITE_API_URL` y necesita un backend externo que implemente `POST /api/requests`, `GET /api/me/requests`, `GET /api/staff/requests` y `PATCH /api/staff/requests/{id}/status`. Instalar Supabase SDK no crea esas rutas. Para sustituir el backend por Supabase directamente se debe implementar y probar la persistencia, autenticación y las políticas RLS en un proyecto Cloud autorizado. Hasta entonces, las solicitudes no se guardan; la pantalla lo indica y propone la fecha de hoy inicialmente.
 
 ## Archivos creados o modificados
 

@@ -115,17 +115,18 @@ export default function BookingPage({ packageSlug }) {
       </div>
       <div className="booking-form-panel">
         <h2>Solicita tu sesión</h2><p className="form-lead">Los campos marcados con * son necesarios.</p>
+        {!apiBase && <div className="demo-notice" role="status"><strong>Reservas temporalmente no disponibles.</strong> El servicio de solicitudes aún no está conectado; el formulario no puede guardar solicitudes hasta que se configure la API.</div>}
         {saved && <div className="demo-notice" role="status"><strong>Solicitud enviada.</strong> Recibimos tu solicitud y está pendiente de confirmación. <a href="#/mis-solicitudes">Consulta tu historial</a>.</div>}
         {error && <div className="demo-notice" role="alert">{error}</div>}
         <form className="booking-form" onSubmit={submitRequest}>
           <div className="form-field"><label htmlFor="booking-package">Paquete seleccionado *</label><select id="booking-package" onChange={(event) => { window.location.hash = `#/reservar/${event.target.value}` }} value={selectedPackage.slug}>{packages.map((item) => <option key={item.slug} value={item.slug}>{item.name} — {item.price}</option>)}</select></div>
           <div className="form-row"><div className="form-field"><label htmlFor="client-name">Nombre completo *</label><input autoComplete="name" id="client-name" maxLength="100" name="name" placeholder="Tu nombre" required /></div><div className="form-field"><label htmlFor="client-email">Correo electrónico *</label><input autoComplete="email" id="client-email" maxLength="254" name="email" placeholder="nombre@correo.com" required type="email" /></div></div>
-          <div className="form-row"><div className="form-field"><label htmlFor="client-phone">Teléfono</label><input autoComplete="tel" id="client-phone" maxLength="30" name="phone" placeholder="+591 ..." type="tel" /></div><div className="form-field"><label htmlFor="project-date">Fecha de interés *</label><input id="project-date" min={minDate} name="date" required type="date" /></div></div>
+          <div className="form-row"><div className="form-field"><label htmlFor="client-phone">Teléfono</label><input autoComplete="tel" id="client-phone" maxLength="30" name="phone" placeholder="+591 ..." type="tel" /></div><div className="form-field"><label htmlFor="project-date">Fecha de interés *</label><input defaultValue={minDate} id="project-date" min={minDate} name="date" required type="date" /></div></div>
           <div className="form-field"><label htmlFor="project-type">Tipo de sesión</label><select id="project-type" name="type" defaultValue=""><option value="">Selecciona una opción</option><option>Boda</option><option>Retrato</option><option>Evento</option><option>Proyecto editorial</option><option>Otro</option></select></div>
           <div className="form-field"><label htmlFor="project-message">¿Qué te gustaría crear? *</label><textarea id="project-message" maxLength="1200" name="message" placeholder="Comparte únicamente los detalles necesarios para planificar tu sesión…" required rows="5" /></div>
           <label className="privacy-consent"><input name="consent" required type="checkbox" /><span>He leído el aviso de privacidad y autorizo el uso de estos datos para gestionar y responder a mi solicitud de sesión. *</span></label>
           <button className="button button--dark booking-form__submit" disabled={saving} type="submit">{saving ? 'Enviando…' : 'Enviar solicitud'} <span aria-hidden="true">↗</span></button>
-          <p className="form-disclaimer">Al enviar, solicitamos el paquete, la fecha y tus datos de contacto al servicio de reservas; todavía no confirmamos la disponibilidad.</p>
+          <p className="form-disclaimer">Al enviar, solicitamos el paquete, la fecha y tus datos de contacto al servicio de reservas; todavía no confirmamos la disponibilidad. Si el servicio no está conectado, no se guardan los datos.</p>
         </form>
       </div>
     </section>
