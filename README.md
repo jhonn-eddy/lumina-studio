@@ -21,6 +21,12 @@ docs/                      Documentación técnica
 
 Las páginas activas usan navegación por hash. Los componentes en `Legacy/components/` se conservan como referencia y no se importan desde la aplicación actual.
 
+## Solicitudes de sesiones
+
+Los paquetes del catálogo se pueden solicitar desde `#/reservar/{slug}`. Cada envío crea, con el servicio conectado, una solicitud pendiente. `#/mis-solicitudes` muestra el historial del titular autenticado y `#/agenda` permite al personal autorizado confirmar o cancelar. La interfaz necesita `VITE_API_URL` y un backend con autenticación y autorización por propietario y permiso. Sin backend, los datos no se guardan y la página informa de que el servicio no está configurado.
+
+Consulta [`docs/solicitudes-api.md`](docs/solicitudes-api.md) para el contrato, las variables y las comprobaciones de autorización necesarias. `VITE_API_URL` se puede configurar como variable de repositorio en GitHub Actions para que GitHub Pages conecte la API durante la compilación; nunca configures secretos o claves privadas como variables `VITE_*`.
+
 ## Desarrollo local
 
 ```bash

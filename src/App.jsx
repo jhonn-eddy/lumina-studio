@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import './App.css'
 import Header from './components/layout/Header.jsx'
 import Footer from './components/layout/Footer.jsx'
-import BookingPage from './pages/BookingPage.jsx'
+import BookingPage, { ClientRequestsPage, StaffRequestsPage } from './pages/BookingPage.jsx'
 import GalleryPage from './pages/GalleryPage.jsx'
 import HomePage from './pages/HomePage.jsx'
 
@@ -59,6 +59,10 @@ export default function App() {
 
   if (route === '/galeria') {
     page = <GalleryPage />
+  } else if (route === '/mis-solicitudes') {
+    page = <ClientRequestsPage />
+  } else if (route === '/agenda') {
+    page = <StaffRequestsPage />
   } else if (isPackageRoute) {
     page = <BookingPage packageSlug={selectedPackage} />
   }

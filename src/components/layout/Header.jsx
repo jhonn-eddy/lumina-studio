@@ -21,6 +21,8 @@ export default function Header({ currentRoute, theme, onThemeToggle }) {
       <nav id="site-navigation" className={`site-nav${menuOpen ? ' site-nav--open' : ''}`} aria-label="Navegación principal">
         <a className={currentRoute === '/' ? 'is-active' : ''} href="#/" onClick={closeMenu}>Inicio</a>
         <a className={currentRoute === '/galeria' ? 'is-active' : ''} href="#/galeria" onClick={closeMenu}>Galería</a>
+        <a className={currentRoute === '/mis-solicitudes' ? 'is-active' : ''} href="#/mis-solicitudes" onClick={closeMenu}>Mis solicitudes</a>
+        <a className={currentRoute === '/agenda' ? 'is-active' : ''} href="#/agenda" onClick={closeMenu}>Agenda</a>
         <a className="button button--dark nav-cta" href="#/paquetes" onClick={closeMenu}>Ver paquetes <span aria-hidden="true">↗</span></a>
         <button className="theme-toggle" type="button" onClick={onThemeToggle} aria-label={`Cambiar a tema ${theme === 'light' ? 'oscuro' : 'claro'}`} title={`Cambiar a tema ${theme === 'light' ? 'oscuro' : 'claro'}`}>
           <span className="theme-toggle__icon" aria-hidden="true">{theme === 'light' ? '☾' : '☼'}</span>
