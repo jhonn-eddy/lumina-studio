@@ -51,7 +51,7 @@ Obtén URL y clave publicable del **proyecto seleccionado**; no adivines, copies
 
 La inicialización del SDK está centralizada en `src/lib/supabase.js`. Consume `supabase` de ese módulo solo después de que `isSupabaseConfigured` sea `true`. Esta preparación no incorpora autenticación de usuarios, CRUD, tablas, migraciones ni cambios remotos. Antes de exponer datos, diseñar las políticas RLS y revisar los permisos por recurso.
 
-El formulario de reservas usa `VITE_API_URL` y necesita un backend externo que implemente `POST /api/requests`, `GET /api/me/requests`, `GET /api/staff/requests` y `PATCH /api/staff/requests/{id}/status`. Instalar Supabase SDK no crea esas rutas. Para sustituir el backend por Supabase directamente se debe implementar y probar la persistencia, autenticación y las políticas RLS en un proyecto Cloud autorizado. Hasta entonces, las solicitudes no se guardan; la pantalla lo indica y propone la fecha de hoy inicialmente.
+El formulario usa `VITE_API_URL` cuando está disponible y espera un backend que implemente las rutas descritas en `docs/solicitudes-api.md`. Instalar Supabase SDK no crea esas rutas. Sin API, el modo demo guarda las solicitudes en `localStorage` del mismo navegador para que se pueda probar el envío y el historial; no sincroniza datos ni ofrece autenticación/agenda segura. Para producción, implementar y desplegar un backend o sustituirlo por Supabase con persistencia, autenticación y políticas RLS revisadas en un proyecto Cloud autorizado.
 
 ## Archivos creados o modificados
 
@@ -75,3 +75,4 @@ npm run dev
 ```
 
 La CLI requiere iniciar sesión y el vínculo con el proyecto Cloud necesita el project ref correcto. Las siguientes tareas operativas son completar la sesión, escoger el proyecto, vincularlo y recuperar su URL y clave publicable para `.env.local`.
+

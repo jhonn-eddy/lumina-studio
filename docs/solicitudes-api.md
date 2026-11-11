@@ -1,35 +1,35 @@
-# Solicitudes de sesión: contrato de API y autorización
+# Solicitudes de sesión: API y permisos
 
-La aplicación presenta la interfaz de consultas, historial y agenda, pero el repositorio es una aplicación React/Vite estática: **no implementa una API, autenticación, roles, ni almacenamiento persistente**. Sin configurar el servicio backend descrito aquí, la interfaz informa del error y no presenta un envío como guardado. Nunca introduzcas datos reales en demostraciones sin conectar el servicio.
+## Comportamiento de la aplicación
 
-## Configuración
+El formulario permite elegir un paquete, indicar una fecha y enviar los datos para crear una solicitud pendiente. Si `VITE_API_URL` está configurada, usa la API del estudio. Si falta, el modo demo guarda la solicitud en `localStorage` y permite consultarla en `#/mis-solicitudes` en el mismo navegador. La agenda compartida (`#/agenda`) requiere la API.
 
-- `VITE_API_URL`: origen HTTPS de la API, sin barra final; por ejemplo, el dominio del backend desplegado.
-- `sessionStorage.lumina_access_token`: JWT de acceso de corta duración, emitido por el proveedor de identidad confiable tras el inicio de sesión. La aplicación consumidora puede establecerlo después de autenticar al cliente o al miembro del personal. Nunca guardes JWT en `localStorage`.
-- `VITE_API_URL` es una variable pública del cliente: no le asignes claves secretas, credenciales de base de datos ni JWT de servicio.
-- Si el token caduca, renueva la sesión en el proveedor de identidad o pide al usuario iniciar sesión de nuevo. En producción, prefiere una sesión segura, `HttpOnly`, `Secure` y `SameSite`, operada por el backend/BFF, a exponer tokens JavaScript.
+El modo demo sirve únicamente para revisar la interfaz: el correo no verifica identidad, el almacenamiento del navegador no es seguro, los datos no llegan al estudio y no se comparten entre dispositivos. No usar datos reales hasta conectar el servicio y sus controles de acceso.
 
-## Rutas esperadas
+## Configuración del servicio
 
-Todas las rutas aceptan HTTPS, devuelven JSON y validan el origen/CORS y el token. Esquema sugerido: `id`, `packageSlug`, `name`, `email`, `phone`, `date` (`YYYY-MM-DD`), `type`, `message`, `status` (`pending | confirmed | cancelled`) y `createdAt`. El cliente nunca define `id`, `ownerId`, `role`, el estado inicial o el precio.
+- `VITE_API_URL`: origen HTTPS del backend, sin barra final.
+- `sessionStorage.lumina_access_token`: token corto de sesión establecido por un flujo de autenticación confiable. El repositorio no implementa inicio de sesión.
+- Las variables `VITE_*` son públicas. No incluir claves secretas, credenciales de base de datos ni tokens de servicio.
+- En producción, preferir una sesión segura administrada por backend/BFF cuando sea posible.
 
-| Operación | Ruta | Principal autorizado | Resultado |
-|---|---|---|---|
-| Solicitar | `POST /api/requests` | Anónimo con consentimiento registrado o cliente autenticado | Crea `pending`; valida paquete contra catálogo, fecha y límites. Aplica verificación antiabuso. |
-| Consultar historial | `GET /api/me/requests` | Cliente con cuenta verificada | Devuelve solo registros cuyo `ownerId` corresponde al `sub` verificado del token. No admite `ownerId` proporcionado por cliente. |
-| Revisar agenda | `GET /api/staff/requests` | Personal autorizado con permiso `requests:read` | Devuelve solo los campos necesarios para gestionar solicitudes. |
-| Confirmar o cancelar | `PATCH /api/staff/requests/{id}/status` | Personal autorizado con permiso `requests:manage` | Cambia únicamente el estado admitido; valida transición, disponibilidad y versión del registro. Registra actor y fecha del cambio. |
+## Contrato esperado
 
-El servidor valida firma, emisor, audiencia, expiración, principal y revocación del token. Luego **autoriza cada operación** con `sub` y permisos/roles procedentes de una fuente de identidad de confianza, comprobando propietario y estado del registro dentro de la misma operación de base de datos. Validar el JWT por sí solo no autoriza la acción. Un visitante anónimo nunca puede leer registros ni cambiar estados. El cliente no tiene rutas de lectura de otros titulares o de agenda ni puede cambiar estado, propietario, precio o fecha de confirmación.
+La API debe validar entradas y paquete, generar `id`, propietario, estado inicial `pending` y fecha de creación. No aceptar del navegador propietario, rol, estado inicial ni precio.
 
-## Verificación de aceptación en el backend desplegado
+| Operación | Ruta | Permiso del servidor |
+|---|---|---|
+| Crear solicitud | `POST /api/requests` | Anónimo con controles antiabuso y consentimiento registrado, o cliente autenticado. Valida campos/paquete y crea `pending`. |
+| Leer historial | `GET /api/me/requests` | Cliente autenticado y verificado; filtra por propietario derivado de identidad, nunca por `ownerId` enviado por cliente. |
+| Corregir solicitud propia | `PATCH /api/me/requests/{id}` | Titular verificado; solo campos expresamente permitidos y comprobación de propiedad en la misma operación. |
+| Consultar agenda | `GET /api/staff/requests` | Personal con `requests:read`; devuelve datos necesarios para gestionar. |
+| Confirmar o cancelar | `PATCH /api/staff/requests/{id}/status` | Personal con `requests:manage`; valida transición/disponibilidad y registra actor/fecha. |
 
-La interfaz estática no puede demostrar permisos de servidor; automatiza estas comprobaciones sobre un entorno no productivo y una base aislada antes de recibir datos reales:
+El servidor verifica firma, emisor, audiencia, expiración y vigencia del token, y además autoriza cada operación por propietario y rol/permisos confiables. Validar un JWT no basta. La UI no sustituye estos controles.
 
-1. Crear dos cuentas cliente, A y B; presentar una consulta para cada una. Un cliente verificado puede leer y corregir su propio registro solamente si el backend habilita expresamente esa corrección; de lo contrario, su operación de corrección también se rechaza.
-2. Sin token, solicitar `GET /api/me/requests` y leer/cambiar un registro conocido. Cada operación debe devolver rechazo y no incluir contacto, fecha, mensaje ni datos de otro cliente. Intentar crear sin consentimiento y con paquetes/fechas inválidos no debe guardar registros.
-3. Como cliente B, leer el historial de A o modificar su registro: recibir rechazo sin campos personales en la respuesta y sin cambios en la base de datos. Repetir la modificación para el estado de su propio registro: no puede confirmarlo ni cancelarlo.
-4. Como personal sin `requests:read`, leer la agenda; y sin `requests:manage`, cambiar el estado: ambas operaciones se rechazan. Como personal autorizado, comprobar lectura de agenda y las transiciones permitidas de pendiente a confirmada/cancelada; un cliente, estado o transición no autorizados se rechazan.
-5. Comprobar que respuestas 401/403 no incluyan el cuerpo del registro; cambios no autorizados dejan intactos estado, fechas, propietario y contactos. Evitar distinguir mediante mensajes si una solicitud ajena existe: usar una respuesta de denegación/no enumeración consistente.
+## Comprobaciones antes de producción
 
-La entidad es una **solicitud de sesión**, pendiente de confirmación, no una cita garantizada. No almacenar datos de pago; definir privacidad, retención y aviso informativo en el backend antes de utilizar datos reales. El consentimiento se debe guardar con finalidad, versión del aviso y fecha del servidor. Cumplir la verificación de identidad y los permisos al nivel del recurso y la operación, incluso si se activa RLS; la UI, el ocultamiento de controles y el JWT no reemplazan los controles del servicio.
+En una base aislada, comprobar anónimo y dos clientes distintos. Lecturas y cambios no autorizados deben rechazarse sin datos personales ni cambios. Un cliente solo lee y corrige sus datos permitidos. El personal autorizado puede leer la agenda y confirmar/cancelar; sin permiso de lectura o gestión, cada acción se rechaza. Comprobar también que errores 401/403 no filtren contenido y que el servidor valide consentimiento, paquete, fechas, campos y transiciones.
+
+Este repositorio contiene el cliente React, no la API. La persistencia compartida y la autorización del servidor dependen de desplegar y configurar el backend. El modo local no demuestra esas capacidades.
+

@@ -3,6 +3,21 @@ import { packages } from '../data/siteContent.js'
 
 const apiBase = import.meta.env.VITE_API_URL?.replace(/\/$/, '')
 const statusLabels = { pending: 'Pendiente', confirmed: 'Confirmada', cancelled: 'Cancelada' }
+const DEMO_REQUESTS_KEY = 'lumina-demo-requests'
+const DEMO_EMAIL_KEY = 'lumina-demo-client-email'
+
+function readDemoRequests() {
+  try {
+    const value = JSON.parse(window.localStorage.getItem(DEMO_REQUESTS_KEY) || '[]')
+    return Array.isArray(value) ? value : []
+  } catch { return [] }
+}
+
+function saveDemoRequest(request) {
+  const requests = readDemoRequests()
+  requests.unshift(request)
+  window.localStorage.setItem(DEMO_REQUESTS_KEY, JSON.stringify(requests))
+}
 
 async function apiRequest(path, { token, ...options } = {}) {
   if (!apiBase) throw new Error('La gestión de reservas aún no está configurada. Inténtalo más tarde o contáctanos por nuestros canales oficiales.')
@@ -52,8 +67,14 @@ function RequestsPage({ staff = false }) {
   const loadRequests = async () => {
     setLoading(true); setError('')
     try {
-      const result = await apiRequest(staff ? '/api/staff/requests' : '/api/me/requests', { token })
-      setRequests(Array.isArray(result) ? result : result?.requests ?? [])
+      if (!apiBase) {
+        if (staff) throw new Error('La agenda compartida requiere conectar la API. El modo de demostración solo muestra el historial del navegador.')
+        const email = window.sessionStorage.getItem(DEMO_EMAIL_KEY)?.toLowerCase()
+        setRequests(email ? readDemoRequests().filter((request) => request.email.toLowerCase() === email) : [])
+      } else {
+        const result = await apiRequest(staff ? '/api/staff/requests' : '/api/me/requests', { token })
+        setRequests(Array.isArray(result) ? result : result?.requests ?? [])
+      }
     } catch (err) { setError(err.message) } finally { setLoading(false) }
   }
 
@@ -62,6 +83,7 @@ function RequestsPage({ staff = false }) {
   const changeStatus = async (request, status) => {
     setBusyId(request.id); setError('')
     try {
+      if (!apiBase) throw new Error('La gestión de agenda requiere la API del estudio.')
       await apiRequest(`/api/staff/requests/${encodeURIComponent(request.id)}/status`, { token, method: 'PATCH', body: JSON.stringify({ status }) })
       await loadRequests()
     } catch (err) { setError(err.message) } finally { setBusyId(null) }
@@ -72,10 +94,11 @@ function RequestsPage({ staff = false }) {
       <p className="eyebrow">{staff ? 'AGENDA DEL ESTUDIO' : 'TU ESPACIO EN LUMINA'}</p>
       <h1>{staff ? 'Gestiona la agenda.' : 'Tus solicitudes.'}</h1>
       <p>{staff ? 'Revisa las consultas recibidas y actualiza su estado.' : 'Consulta el estado y el historial de tus solicitudes de sesión.'}</p>
-      {!token && <p className="demo-notice" role="status">Para ver solicitudes, inicia sesión en la cuenta asociada con la variable de sesión <code>lumina_access_token</code>.</p>}
+      {!apiBase && !staff && <p className="demo-notice" role="status">Modo de demostración: el historial solo aparece en este navegador y para el correo usado al enviar. No es una cuenta verificada.</p>}
+      {apiBase && !token && <p className="demo-notice" role="status">Para ver solicitudes, inicia sesión en la cuenta asociada con la variable de sesión <code>lumina_access_token</code>.</p>}
       {error && <p className="demo-notice" role="alert">{error}</p>}
       <button className="button button--outline requests-page__refresh" onClick={() => void loadRequests()} type="button">Actualizar historial</button>
-      {loading ? <p className="requests-page__empty" role="status">Cargando solicitudes…</p> : requests.length ? <div className="requests-list">{requests.map((request) => <RequestCard busyId={busyId} key={request.id} onStatusChange={changeStatus} request={request} staff={staff} />)}</div> : <p className="requests-page__empty">{token && !error ? 'Todavía no tienes solicitudes guardadas.' : 'El historial aparecerá aquí cuando el servicio esté conectado.'}</p>}
+      {loading ? <p className="requests-page__empty" role="status">Cargando solicitudes…</p> : requests.length ? <div className="requests-list">{requests.map((request) => <RequestCard busyId={busyId} key={request.id} onStatusChange={changeStatus} request={request} staff={staff} />)}</div> : <p className="requests-page__empty">{(token || (!apiBase && !staff)) && !error ? 'Todavía no tienes solicitudes guardadas en este historial.' : 'El historial aparecerá aquí cuando el servicio esté conectado.'}</p>}
       <a className="back-link" href="#/">Volver al inicio</a>
     </section>
   )
@@ -87,6 +110,7 @@ export function StaffRequestsPage() { return <RequestsPage staff /> }
 export default function BookingPage({ packageSlug }) {
   const [error, setError] = useState('')
   const [saved, setSaved] = useState(false)
+  const [demoSaved, setDemoSaved] = useState(false)
   const [saving, setSaving] = useState(false)
   const today = new Date()
   const minDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
@@ -95,11 +119,20 @@ export default function BookingPage({ packageSlug }) {
   if (!selectedPackage) return <section className="page-intro"><p className="eyebrow">PAQUETE NO DISPONIBLE</p><h1>Elige una experiencia</h1><p>Vuelve al inicio para consultar los paquetes disponibles.</p><a className="button button--dark" href="#/">Ir al inicio</a></section>
 
   const submitRequest = async (event) => {
-    event.preventDefault(); setError(''); setSaved(false); setSaving(true)
+    event.preventDefault(); setError(''); setSaved(false); setDemoSaved(false); setSaving(true)
+    const formElement = event.currentTarget
     const form = new FormData(event.currentTarget)
     try {
-      await apiRequest('/api/requests', { method: 'POST', token: getToken(), body: JSON.stringify({ packageSlug, name: String(form.get('name') ?? '').trim(), email: String(form.get('email') ?? '').trim(), phone: String(form.get('phone') ?? '').trim(), date: form.get('date'), type: form.get('type'), message: String(form.get('message') ?? '').trim(), consent: form.get('consent') === 'on' }) })
-      setSaved(true); event.currentTarget.reset()
+      const request = { packageSlug, name: String(form.get('name') ?? '').trim(), email: String(form.get('email') ?? '').trim(), phone: String(form.get('phone') ?? '').trim(), date: form.get('date'), type: form.get('type'), message: String(form.get('message') ?? '').trim(), consent: form.get('consent') === 'on' }
+      if (apiBase) {
+        await apiRequest('/api/requests', { method: 'POST', token: getToken(), body: JSON.stringify(request) })
+      } else {
+        const savedRequest = { ...request, id: window.crypto.randomUUID(), status: 'pending', createdAt: new Date().toISOString() }
+        saveDemoRequest(savedRequest)
+        window.sessionStorage.setItem(DEMO_EMAIL_KEY, request.email.toLowerCase())
+        setDemoSaved(true)
+      }
+      setSaved(true); formElement.reset()
     } catch (err) { setError(err.message) } finally { setSaving(false) }
   }
 
@@ -115,8 +148,8 @@ export default function BookingPage({ packageSlug }) {
       </div>
       <div className="booking-form-panel">
         <h2>Solicita tu sesión</h2><p className="form-lead">Los campos marcados con * son necesarios.</p>
-        {!apiBase && <div className="demo-notice" role="status"><strong>Reservas temporalmente no disponibles.</strong> El servicio de solicitudes aún no está conectado; el formulario no puede guardar solicitudes hasta que se configure la API.</div>}
-        {saved && <div className="demo-notice" role="status"><strong>Solicitud enviada.</strong> Recibimos tu solicitud y está pendiente de confirmación. <a href="#/mis-solicitudes">Consulta tu historial</a>.</div>}
+        {!apiBase && <div className="demo-notice" role="status"><strong>Modo de demostración.</strong> Puedes enviar la solicitud y se guardará en este navegador. Para recibirla y verla en una agenda compartida, se necesita conectar el servicio del estudio.</div>}
+        {saved && <div className="demo-notice" role="status"><strong>Solicitud guardada.</strong> {demoSaved ? 'Quedó pendiente en este navegador; aún no llegó al estudio.' : 'Recibimos tu solicitud y está pendiente de confirmación.'} <a href="#/mis-solicitudes">Consulta tu historial</a>.</div>}
         {error && <div className="demo-notice" role="alert">{error}</div>}
         <form className="booking-form" onSubmit={submitRequest}>
           <div className="form-field"><label htmlFor="booking-package">Paquete seleccionado *</label><select id="booking-package" onChange={(event) => { window.location.hash = `#/reservar/${event.target.value}` }} value={selectedPackage.slug}>{packages.map((item) => <option key={item.slug} value={item.slug}>{item.name} — {item.price}</option>)}</select></div>
@@ -126,9 +159,10 @@ export default function BookingPage({ packageSlug }) {
           <div className="form-field"><label htmlFor="project-message">¿Qué te gustaría crear? *</label><textarea id="project-message" maxLength="1200" name="message" placeholder="Comparte únicamente los detalles necesarios para planificar tu sesión…" required rows="5" /></div>
           <label className="privacy-consent"><input name="consent" required type="checkbox" /><span>He leído el aviso de privacidad y autorizo el uso de estos datos para gestionar y responder a mi solicitud de sesión. *</span></label>
           <button className="button button--dark booking-form__submit" disabled={saving} type="submit">{saving ? 'Enviando…' : 'Enviar solicitud'} <span aria-hidden="true">↗</span></button>
-          <p className="form-disclaimer">Al enviar, solicitamos el paquete, la fecha y tus datos de contacto al servicio de reservas; todavía no confirmamos la disponibilidad. Si el servicio no está conectado, no se guardan los datos.</p>
+          <p className="form-disclaimer">Al enviar, la solicitud queda pendiente; la fecha no está confirmada. Sin servicio conectado, los datos de demostración se guardan únicamente en este navegador y no llegan al estudio.</p>
         </form>
       </div>
     </section>
   )
 }
+
